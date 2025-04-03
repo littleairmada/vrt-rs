@@ -236,3 +236,16 @@ fn parse_tsf(#[case] input: &[u8], #[case] expected: Result<Tsf, Error>) {
 
     assert_eq!(tsi, expected);
 }
+
+#[test]
+fn serialize() {
+    let (_, mut packet) =
+        VrtPacket::parse(VRT_FLEXRADIO_BROADCAST_MSG).expect("failed to parse packet");
+
+    let mut buf = [0u8; 1024];
+    let len = packet
+        .serialize(&mut buf)
+        .expect("failed to serialize packet");
+
+    assert_eq!(&buf[..len], VRT_FLEXRADIO_BROADCAST_MSG);
+}

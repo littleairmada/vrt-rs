@@ -1,5 +1,7 @@
 use nom::{number::streaming::be_u8, Err, IResult, Needed};
 
+use crate::Error;
+
 /// VRT Packet Trailer
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Trailer {
@@ -132,5 +134,44 @@ impl Trailer {
             associated_context_packet_count: associated_context_packet_count_value,
         };
         Ok((i, hdr))
+    }
+
+    /// Serialize the VRT packet trailer
+    pub fn serialize(&self, buffer: &mut [u8]) -> Result<usize, Error> {
+        if buffer.len() < 4 {
+            return Err(Error::BufferFull);
+        }
+
+        let mut word = 0;
+        word |= u32::from(self.calibrated_time_enable) << 31;
+        word |= u32::from(self.valid_data_enable) << 30;
+        word |= u32::from(self.reference_lock_enable) << 29;
+        word |= u32::from(self.agcmgc_enable) << 28;
+        word |= u32::from(self.detected_signal_enable) << 27;
+        word |= u32::from(self.spectral_inversion_enable) << 26;
+        word |= u32::from(self.overrange_enable) << 25;
+        word |= u32::from(self.sample_loss_enable) << 24;
+        word |= u32::from(self.user_defined_enable_1) << 23;
+        word |= u32::from(self.user_defined_enable_2) << 22;
+        word |= u32::from(self.user_defined_enable_3) << 21;
+        word |= u32::from(self.user_defined_enable_4) << 20;
+        word |= u32::from(self.calibrated_time_indicator) << 19;
+        word |= u32::from(self.calibrated_time_indicator) << 18;
+        word |= u32::from(self.reference_lock_indicator) << 17;
+        word |= u32::from(self.agcmgc_indicator) << 16;
+        word |= u32::from(self.detected_signal_indicator) << 15;
+        word |= u32::from(self.spectral_inversion_indicator) << 14;
+        word |= u32::from(self.overrange_indicator) << 13;
+        word |= u32::from(self.sample_loss_indicator) << 12;
+        word |= u32::from(self.user_defined_indicator_1) << 11;
+        word |= u32::from(self.user_defined_indicator_2) << 10;
+        word |= u32::from(self.user_defined_indicator_3) << 9;
+        word |= u32::from(self.user_defined_indicator_4) << 8;
+        word |= u32::from(self.associated_context_packet_count_enable) << 7;
+        word |= u32::from(self.associated_context_packet_count) & 0x7f;
+
+        buffer.copy_from_slice(&word.to_be_bytes());
+
+        Ok(4)
     }
 }

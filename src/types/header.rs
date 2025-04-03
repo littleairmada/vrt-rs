@@ -3,10 +3,12 @@ use nom::{
     Err, IResult, Needed,
 };
 
+use crate::Error;
+
 use super::*;
 
 /// VRT Packet Header
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Header {
     /// VRT Packet Type
     pub packet_type: PktType,
@@ -56,5 +58,24 @@ impl Header {
             packet_size,
         };
         Ok((i, hdr))
+    }
+
+    /// Serialize the VRT packet header
+    pub fn serialize(&self, buffer: &mut [u8]) -> Result<usize, Error> {
+        if buffer.len() < size_of::<u32>() {
+            return Err(Error::BufferFull);
+        }
+
+        let mut word = 0;
+        word |= u32::from(u8::from(self.packet_type)) << 28;
+        word |= u32::from(self.c) << 27;
+        word |= u32::from(self.t) << 26;
+        word |= u32::from(u8::from(self.tsi)) << 22;
+        word |= u32::from(u8::from(self.tsf)) << 20;
+        word |= (u32::from(self.packet_count) & 0xf) << 16;
+        word |= u32::from(self.packet_size);
+        buffer[..4].copy_from_slice(&word.to_be_bytes());
+
+        Ok(size_of::<u32>())
     }
 }

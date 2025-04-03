@@ -1,9 +1,10 @@
 use crate::Error;
 
 /// Fractional-Seconds Timestamp Type
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Tsf {
     /// No fractional-seconds timestamp field.
+    #[default]
     None,
     /// Fractional-seconds timestamp field is a Sample Count Timestamp.
     SampleCount,

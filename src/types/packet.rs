@@ -3,10 +3,12 @@ use nom::{
     Err, IResult, Needed,
 };
 
+use crate::Error;
+
 use super::*;
 
 /// VRT Packet
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct VrtPacket<'a> {
     /// VRT Packet Header
     pub header: Header,
@@ -97,5 +99,75 @@ impl VrtPacket<'_> {
         };
 
         Ok((i, packet))
+    }
+
+    /// Serialize the VITA-49 packet into the provided buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `buffer` - The buffer to serialize the packet into.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(usize)` - The number of bytes written to the buffer.
+    /// * `Err(Error)` - An error if the buffer is too small or if serialization fails.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use vrt::VrtPacket;
+    ///
+    /// let mut packet = VrtPacket::default();
+    /// // Set the fields of the packet as needed
+    /// // packet.header.packet_type = ...;
+    /// let mut buffer = [0u8; 1024]; // Ensure the buffer is large enough
+    ///
+    /// match packet.serialize(&mut buffer) {
+    ///    Ok(size) => println!("Serialized {} bytes", size),
+    ///    Err(e) => eprintln!("Error: {:?}", e),
+    /// }
+    /// ```
+    pub fn serialize(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
+        let mut offset = 0;
+
+        offset += self.header.serialize(&mut buffer[offset..])?;
+        if let Some(stream_id) = self.stream_id {
+            if buffer.len() < offset + size_of::<u32>() {
+                return Err(Error::BufferFull);
+            }
+            buffer[offset..offset + size_of::<u32>()].copy_from_slice(&stream_id.to_be_bytes());
+            offset += size_of::<u32>();
+        }
+        if let Some(class_id) = self.class_id {
+            offset += class_id.serialize(&mut buffer[offset..])?;
+        }
+        if let Some(tsi) = self.tsi {
+            if buffer.len() < offset + size_of_val(&tsi) {
+                return Err(Error::BufferFull);
+            }
+            buffer[offset..offset + size_of_val(&tsi)].copy_from_slice(&tsi.to_be_bytes());
+            offset += size_of_val(&tsi);
+        }
+        if let Some(tsf) = self.tsf {
+            if buffer.len() < offset + size_of_val(&tsf) {
+                return Err(Error::BufferFull);
+            }
+            buffer[offset..offset + size_of_val(&tsf)].copy_from_slice(&tsf.to_be_bytes());
+            offset += size_of_val(&tsf);
+        }
+        if buffer.len() < offset + self.payload.len() {
+            return Err(Error::BufferFull);
+        }
+        buffer[offset..offset + self.payload.len()].copy_from_slice(self.payload);
+        offset += self.payload.len();
+        if let Some(trailer) = self.trailer {
+            offset += trailer.serialize(&mut buffer[offset..])?;
+        }
+
+        // Serialize the header again to update the packet size
+        self.header.packet_size = (offset / size_of::<u32>()).try_into()?;
+        let _ = self.header.serialize(&mut buffer[0..])?;
+
+        Ok(offset)
     }
 }

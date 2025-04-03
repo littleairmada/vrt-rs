@@ -1,9 +1,10 @@
 use crate::Error;
 
 /// VRT Packet Type
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum PktType {
     /// Standard IFDATA packet
+    #[default]
     IfData,
     /// Standard IFDATA packet with a packet stream
     IfDataWithStream,

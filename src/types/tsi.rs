@@ -1,9 +1,10 @@
 use crate::Error;
 
 /// Integer-Seconds Timestamp
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Tsi {
     /// No integer-seconds timestamp field.
+    #[default]
     None,
     /// Integer-seconds timestamp field is a Coordinated Universal Time (UTC).
     Utc,
